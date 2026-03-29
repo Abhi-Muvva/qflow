@@ -29,9 +29,9 @@ molecule.py         make_h_chain → run_rhf_and_integrals → build_fci_string_
                                                                     |
 ses.py              enumerate_ses → build_ses_basis_vectors         |
                     sigma_int_keys_for_ses → init_sigma_pool        |
-                    precompute_ses_data                              |
+                    precompute_ses_data                             |
                            |                                        |
-heff.py             build_Heff (uses sigma_pool + apply_H_fci) ←───┘
+heff.py             build_Heff (uses sigma_pool + apply_H_fci) ─────┘
                     _psi_int_cas → _gradients_commutator
                            |
 optimizer.py        run_qflow_cycle → run_qflow (outer loop)

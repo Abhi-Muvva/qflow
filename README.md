@@ -53,9 +53,6 @@ Infrastructure only — no QFlow logic.
 | `build_fci_string_basis(nmo, nelec)` | Enumerate FCI bitstrings, return index dicts |
 | `apply_H_fci(vec, ...)` | H sigma-vector via PySCF direct_spin1 |
 
-**To extend:** add new molecule builders here (rings, 3D, non-H atoms).
-Everything downstream adapts automatically as long as the same RHF
-interface is returned.
 
 ---
 
@@ -72,16 +69,6 @@ The active-space heart of QFlow. All SES-specific logic lives here.
 | `precompute_ses_data(...)` | Per-SES V, int_keys, ext_keys, owned_keys |
 | `_annihilate_orb`, `_create_orb`, `_popcount`, ... | Fermionic sign helpers |
 
-**Extension — gradient-norm active-space pruning (arXiv:2410.11992):**
-After the first cycle, score each SES by `max(|grad|)` over its owned keys.
-Drop low-scoring SES from `ses_list`, then call `precompute_ses_data` again.
-Only this file and the outer loop in `optimizer.py` change.
-
-**Extension — larger active spaces (QFlow(6e,6o)):**
-Change `combinations(occ_orbs, 2)` in `enumerate_ses` and
-`build_ses_basis_vectors` to `combinations(occ_orbs, 3)`, and update
-the rank range in `sigma_int_keys_for_ses` accordingly.
-The CAS dimension becomes C(6,3)^2 = 400 determinants.
 
 ---
 
@@ -98,17 +85,6 @@ Effective Hamiltonian construction and gradient computation.
 | `_gradients_commutator(...)` | Eq. 19: <Ψ_int\| [H_eff, τ_k] \|Ψ_int> |
 | `compute_ses_energy_stringmb(H_eff, E_nuc)` | Exact-diag fallback (diagnostic) |
 
-**Extension — Quantum Natural Gradient (QNG):**
-Inside `_gradients_commutator`, compute the quantum Fisher information
-matrix `F[k,l] = <[τ_k, τ_l]>`. Return it alongside raw gradients.
-In `optimizer.py`, apply `F^{-1} @ g` before the SGD step.
-This directly addresses the learning-rate sensitivity seen at R=3.0.
-
-**Extension — alternative ansatz:**
-Replace `_psi_int_cas` with a new state-preparation function (hardware-
-efficient layers, Givens rotations, etc.). The gradient formula in
-`_gradients_commutator` stays the same as long as the ansatz is
-parameterised by the same τ_k generators.
 
 ---
 
@@ -121,22 +97,6 @@ The optimization loop. Touches all other modules but owns no physics.
 | `run_qflow(nH, R_bohr, ...)` | Outer loop: setup, cycle iteration, convergence check |
 | `print_ses_params(...)` | Per-SES parameter/gradient table (debug output) |
 | `print_ownership(...)` | First-claimant ownership map |
-
-**Extension — ADMM consensus coupling:**
-In `run_qflow_cycle`, after computing gradients, add the ADMM penalty:
-`grad_k += rho * (theta_k - z_k + u_k)` for each owned key.
-After the full sweep, update the consensus variables z and u.
-Store z, u as outer-loop state in `run_qflow`.
-
-**Extension — Adam / L-BFGS:**
-Replace the SGD line `sigma_pool[k] -= lr * grad` with a call to a
-stateful optimizer object initialised once in `run_qflow` and passed
-into each cycle call.
-
-**Convergence criterion:**
-Currently: spread < conv_spread AND |ΔE| < conv_e AND max_grad < conv_g.
-To match the paper's Equivalence Theorem (spread-only), remove the
-ΔE and max_grad checks in the convergence block of `run_qflow`.
 
 ---
 
@@ -152,10 +112,6 @@ Classical reference energies. Fully independent of all QFlow files.
 | `compute_ccsdt_energy_ccpy(ref)` | CCSDT via CCpy |
 | `compute_ccsdtq_energy_ccpy(ref)` | CCSDTQ via CCpy |
 | `compute_fci_energy(ref)` | Full-space ED |
-
-**Extension — new methods:**
-Add a new `compute_*` function following the same Refstate pattern.
-Add the key to `method_order` in Flow.ipynb cell 5.
 
 ---
 
